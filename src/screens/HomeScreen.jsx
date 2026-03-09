@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { COLORS as C } from '../theme/colors';
 import Icon from '../components/Icon';
 import Logo from '../components/Logo';
@@ -28,43 +29,69 @@ export default function HomeScreen({ setTab }) {
     };
     const s = statusConfig[data.rules.status] || statusConfig.green;
 
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        show: {
+            opacity: 1,
+            transition: { staggerChildren: 0.1 }
+        }
+    };
+
+    const itemVariants = {
+        hidden: { opacity: 0, y: 20 },
+        show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+    };
+
     return (
-        <div style={{ padding: "16px 16px 100px 16px", animation: "fadeUp 0.5s ease-out" }}>
+        <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="show"
+            style={{ padding: "16px 16px 100px 16px" }}
+        >
             {/* Header/Logo Strip */}
-            <div style={{ padding: "8px 0 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <motion.div variants={itemVariants} style={{ padding: "8px 0 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <Logo size={36} showText={true} />
-                <div style={{ width: 40, height: 40, borderRadius: 20, background: C.cardHover, display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${C.border}` }}>
+                <motion.div
+                    whileHover={{ scale: 1.05, backgroundColor: C.active }}
+                    whileTap={{ scale: 0.95 }}
+                    style={{ width: 40, height: 40, borderRadius: 20, background: C.cardHover, display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${C.border}` }}
+                >
                     <Icon name="search" size={18} color={C.textMid} />
-                </div>
-            </div>
+                </motion.div>
+            </motion.div>
 
             {/* Location bar */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 0 20px" }}>
+            <motion.div variants={itemVariants} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 0 20px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <Icon name="pin" size={16} color={C.water} />
                     <span style={{ fontSize: 14, color: C.textMid, fontWeight: 700, fontFamily: C.fontHeading }}>Represa de Jurumirim, SP</span>
                 </div>
                 <span style={{ fontSize: 12, color: C.textDim, fontWeight: 500 }}>09 Mar 2026</span>
-            </div>
+            </motion.div>
 
             {/* STATUS SEMÁFORO */}
-            <div style={{
-                background: s.bg, border: `1px solid ${s.border}40`, borderRadius: 20,
-                padding: 20, marginBottom: 16, position: "relative", overflow: "hidden",
-                boxShadow: `0 8px 32px ${s.border}15`
-            }}>
+            <motion.div variants={itemVariants}
+                whileHover={{ scale: 1.01, boxShadow: `0 12px 40px ${s.border}20` }}
+                style={{
+                    background: s.bg, border: `1px solid ${s.border}40`, borderRadius: 20,
+                    padding: 20, marginBottom: 16, position: "relative", overflow: "hidden",
+                    boxShadow: `0 8px 32px ${s.border}15`
+                }}>
                 <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 4, background: s.border }} />
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
-                    <div style={{
-                        width: 52, height: 52, borderRadius: 26, background: `${s.border}25`,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        border: `2px solid ${s.border}`, fontSize: 24, fontWeight: 900, color: s.color,
-                        boxShadow: `0 0 20px ${s.border}40`
-                    }}>
+                    <motion.div
+                        animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 5, repeat: Infinity }}
+                        style={{
+                            width: 52, height: 52, borderRadius: 26, background: `${s.border}25`,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            border: `2px solid ${s.border}`, fontSize: 24, fontWeight: 900, color: s.color,
+                            boxShadow: `0 0 20px ${s.border}40`
+                        }}>
                         {s.icon}
-                    </div>
+                    </motion.div>
                     <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 18, fontWeight: 800, color: s.color, letterSpacing: 0.5, fontFamily: 'Outfit, sans-serif' }}>{s.label}</div>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: s.color, letterSpacing: 0.5, fontFamily: "'Outfit', sans-serif" }}>{s.label}</div>
                         <div style={{ fontSize: 12, color: C.textMid, marginTop: 4, lineHeight: 1.5 }}>{s.sub}</div>
                     </div>
                 </div>
@@ -76,17 +103,21 @@ export default function HomeScreen({ setTab }) {
                         }}>{r}</span>
                     ))}
                 </div>
-            </div>
+            </motion.div>
 
             {/* ÍNDICE SOLUNAR */}
-            <div style={{
-                background: C.card, borderRadius: 20, padding: 20, marginBottom: 16,
-                border: `1px solid ${C.border}`, boxShadow: `0 4px 20px rgba(0,0,0,0.2)`
-            }}>
+            <motion.div variants={itemVariants}
+                whileHover={{ y: -2, boxShadow: `0 8px 24px rgba(0,0,0,0.3)` }}
+                style={{
+                    background: C.card, borderRadius: 20, padding: 20, marginBottom: 16,
+                    border: `1px solid ${C.border}`, boxShadow: `0 4px 20px rgba(0,0,0,0.2)`
+                }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <Icon name="sun" size={18} color={C.amber} />
-                        <span style={{ fontSize: 14, fontWeight: 700, fontFamily: 'Outfit, sans-serif' }}>Índice de Pesca Hoje</span>
+                        <motion.div animate={{ rotate: 360 }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }}>
+                            <Icon name="sun" size={18} color={C.amber} />
+                        </motion.div>
+                        <span style={{ fontSize: 14, fontWeight: 700, fontFamily: "'Outfit', sans-serif" }}>Índice de Pesca Hoje</span>
                     </div>
                     <div style={{
                         fontSize: 28, fontWeight: 900, fontFamily: 'Outfit, sans-serif',
@@ -106,33 +137,38 @@ export default function HomeScreen({ setTab }) {
                         <span style={{ color: C.amber, fontWeight: 700 }}>●</span> Menor: 17:00–18:30
                     </div>
                 </div>
-            </div>
+            </motion.div>
 
             {/* CLIMA */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
+            <motion.div variants={itemVariants} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
                 {[
                     { icon: "sun", label: "Temp", value: `${data.weather.temp}°C`, color: C.orange },
                     { icon: "wind", label: "Vento", value: data.weather.wind, color: C.blue },
                     { icon: "moon", label: "Lua", value: data.weather.moon, color: C.amber },
-                ].map(w => (
-                    <div key={w.label} style={{
-                        background: C.card, borderRadius: 16, padding: "16px 10px",
-                        border: `1px solid ${C.border}`, textAlign: "center",
-                        boxShadow: `0 4px 12px rgba(0,0,0,0.15)`
-                    }}>
+                ].map((w, i) => (
+                    <motion.div key={w.label}
+                        whileHover={{ y: -4, scale: 1.02 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                        style={{
+                            background: C.card, borderRadius: 16, padding: "16px 10px",
+                            border: `1px solid ${C.border}`, textAlign: "center",
+                            boxShadow: `0 4px 12px rgba(0,0,0,0.15)`
+                        }}>
                         <Icon name={w.icon} size={20} color={w.color} />
                         <div style={{ fontSize: 15, fontWeight: 800, marginTop: 8, color: C.text }}>{w.value}</div>
                         <div style={{ fontSize: 10, color: C.textDim, marginTop: 4, fontWeight: 500 }}>{w.label}</div>
-                    </div>
+                    </motion.div>
                 ))}
-            </div>
+            </motion.div>
 
             {/* ÚLTIMA CAPTURA */}
-            <div
+            <motion.div variants={itemVariants}
                 onClick={() => setTab?.(4)}
+                whileHover={{ scale: 1.01, backgroundColor: `${C.water}10` }}
+                whileTap={{ scale: 0.98 }}
                 style={{
                     background: C.cardHover, borderRadius: 20, padding: 16, border: `1px solid ${C.border}`,
-                    marginBottom: 16, cursor: 'pointer', transition: 'all 0.2s',
+                    marginBottom: 16, cursor: 'pointer',
                 }}>
                 <div style={{ fontSize: 11, color: C.textDim, fontWeight: 700, marginBottom: 12, textTransform: "uppercase", letterSpacing: 1 }}>
                     Última Captura
@@ -150,22 +186,24 @@ export default function HomeScreen({ setTab }) {
                     </div>
                     <Icon name="chevron" size={20} color={C.textDim} />
                 </div>
-            </div>
+            </motion.div>
 
             {/* TIP DO DIA */}
-            <div style={{
-                background: `linear-gradient(135deg, ${C.blueDim}40, ${C.card})`,
-                borderRadius: 20, padding: 20, border: `1px solid ${C.blue}30`,
-                boxShadow: `0 8px 24px ${C.blue}15`
-            }}>
+            <motion.div variants={itemVariants}
+                whileHover={{ scale: 1.01 }}
+                style={{
+                    background: `linear-gradient(135deg, ${C.blueDim}40, ${C.card})`,
+                    borderRadius: 20, padding: 20, border: `1px solid ${C.blue}30`,
+                    boxShadow: `0 8px 24px ${C.blue}15`
+                }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                    <span style={{ fontSize: 18 }}>💡</span>
+                    <motion.span animate={{ y: [0, -4, 0] }} transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }} style={{ fontSize: 18 }}>💡</motion.span>
                     <div style={{ fontSize: 13, color: C.blue, fontWeight: 800, letterSpacing: 0.5 }}>DICA DO DIA</div>
                 </div>
                 <div style={{ fontSize: 13, color: C.textMid, lineHeight: 1.6 }}>
                     Lua nova + pressão subindo = atividade intensa de tucunarés nas primeiras horas da manhã. Aposte em iscas de superfície!
                 </div>
-            </div>
-        </div>
+            </motion.div>
+        </motion.div>
     );
 }
