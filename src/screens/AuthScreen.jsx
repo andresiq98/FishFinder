@@ -4,6 +4,14 @@ import Logo from '../components/Logo';
 
 export default function AuthScreen({ onLogin }) {
     const [offsetY, setOffsetY] = useState(0);
+    const [isEntering, setIsEntering] = useState(false);
+
+    const handleLogin = () => {
+        setIsEntering(true);
+        setTimeout(() => {
+            onLogin();
+        }, 800);
+    };
 
     useEffect(() => {
         const handleScroll = () => {
@@ -31,15 +39,33 @@ export default function AuthScreen({ onLogin }) {
                 background: `radial-gradient(circle, ${C.mataTeal} 0%, transparent 70%)`, opacity: 0.1, filter: "blur(80px)"
             }} />
 
+            {/* Immersive Entry Animation Overlay */}
+            <div style={{
+                position: 'fixed',
+                top: '50%',
+                left: '50%',
+                width: '150vmax',
+                height: '150vmax',
+                background: `radial-gradient(circle, ${C.mataTeal}, ${C.riverDark})`,
+                borderRadius: '50%',
+                transform: isEntering ? 'translate(-50%, -50%) scale(1.5)' : 'translate(-50%, -50%) scale(0)',
+                transition: 'transform 0.8s cubic-bezier(0.5, 0, 0.2, 1), opacity 0.4s',
+                opacity: isEntering ? 1 : 0,
+                zIndex: 999,
+                pointerEvents: 'none',
+                boxShadow: `inset 0 0 100px ${C.amberGlow}40`
+            }} />
+
             {/* Main Content Area */}
             <div style={{
                 position: "relative", zIndex: 10, display: "flex", flexDirection: "column",
-                minHeight: "100vh", justifyContent: "space-between", padding: "40px 24px"
+                minHeight: "100vh", justifyContent: "space-between", padding: "40px 24px",
+                opacity: isEntering ? 0 : 1, transition: "opacity 0.4s"
             }}>
 
                 {/* Top Logo */}
-                <div style={{ animation: "fadeUp 0.8s ease-out" }}>
-                    <Logo size={40} showText={false} />
+                <div style={{ animation: "fadeUp 0.8s ease-out", display: "flex", justifyContent: "center" }}>
+                    <Logo size={72} showText={true} />
                 </div>
 
                 {/* Hero Text with Parallax Effect */}
@@ -88,7 +114,7 @@ export default function AuthScreen({ onLogin }) {
                     </div>
 
                     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                        <button onClick={onLogin} style={{
+                        <button onClick={handleLogin} style={{
                             background: `linear-gradient(135deg, ${C.amber}, ${C.sunrise})`,
                             color: "#000", border: "none", padding: "18px", borderRadius: 16,
                             fontSize: 16, fontWeight: 800, fontFamily: "'Outfit', sans-serif",
