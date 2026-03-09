@@ -5,8 +5,10 @@ import CaptureScreen from './screens/CaptureScreen';
 import MapScreen from './screens/MapScreen';
 import SpeciesScreen from './screens/SpeciesScreen';
 import ProfileScreen from './screens/ProfileScreen';
+import AuthScreen from './screens/AuthScreen';
 
 export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
 
   const renderScreen = () => {
@@ -19,6 +21,10 @@ export default function App() {
       default: return <HomeScreen setTab={setActiveTab} />;
     }
   };
+
+  if (!isAuthenticated) {
+    return <AuthScreen onLogin={() => setIsAuthenticated(true)} />;
+  }
 
   return (
     <>

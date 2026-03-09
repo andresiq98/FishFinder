@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { COLORS as C } from '../theme/colors';
 import Icon from '../components/Icon';
+import Logo from '../components/Logo';
 import SolunarBar from '../components/SolunarBar';
 import { fetchWeatherData, fetchSolunarData, fetchRegulations } from '../services/api';
 
@@ -29,8 +30,16 @@ export default function HomeScreen({ setTab }) {
 
     return (
         <div style={{ padding: "16px 16px 100px 16px", animation: "fadeUp 0.5s ease-out" }}>
+            {/* Header/Logo Strip */}
+            <div style={{ padding: "8px 0 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <Logo size={36} showText={true} />
+                <div style={{ width: 40, height: 40, borderRadius: 20, background: C.cardHover, display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${C.border}` }}>
+                    <Icon name="search" size={18} color={C.textMid} />
+                </div>
+            </div>
+
             {/* Location bar */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0 20px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 0 20px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <Icon name="pin" size={16} color={C.water} />
                     <span style={{ fontSize: 14, color: C.textMid, fontWeight: 700, fontFamily: C.fontHeading }}>Represa de Jurumirim, SP</span>
