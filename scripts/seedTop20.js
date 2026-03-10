@@ -1,8 +1,7 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, setDoc } from "firebase/firestore";
-import fs from "fs";
-import path from "path";
+import { getFirestore, doc, setDoc, collection, getDocs, deleteDoc } from "firebase/firestore";
 import * as dotenv from 'dotenv';
+import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -20,94 +19,354 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// ─────────────────────────────────────────────────────────────────────────────
+// TOP 20 ESPÉCIES — dados completos + fotos de alta qualidade (Wikimedia/iNaturalist)
+// ─────────────────────────────────────────────────────────────────────────────
 const TOP_20 = [
-    { folder: "Cichla_temensis_Tucunaré-Açu", sci: "Cichla temensis", name: "Tucunaré-açu", type: "Água doce", origin: "Nativa", min: 35, habitat: "Rios e lagos de águas claras da bacia amazônica", iscas: "Iscas de superfície, hélices, poppers", techniques: "Arremesso rápido, trabalho de superfície agressivo", season: "Setembro a Março (Bacia Amazônica)", curiosity: "O maior dos tucunarés, pode ultrapassar os 12kg. O macho desenvolve um calo na cabeça na época da reprodução." },
-    { folder: "Salminus_brasiliensis_Dourado", sci: "Salminus brasiliensis", name: "Dourado", type: "Água doce", origin: "Nativa", min: 55, habitat: "Rios com muita correnteza, corredeiras", iscas: "Iscas de meia-água, colheres, tuvira", techniques: "Corrico e arremesso nas margens rápidas", season: "Março a Outubro", curiosity: "Conhecido como o 'Rei do Rio'. Possui força extrema e salta espetacularmente quando fisgado." },
-    { folder: "Centropomus_undecimalis_Robalo-Flecha", sci: "Centropomus undecimalis", name: "Robalo-flecha", type: "Salgada/Estuário", origin: "Nativa", min: 40, habitat: "Estuários, manguezais, margens de rios que desaguam no mar", iscas: "Camarão vivo, jigs, shads", techniques: "Pesca de fundo e light tackle em estruturas", season: "Ano todo (Pico Nov–Mar)", curiosity: "Hermafrodita protândrico — nasce macho e vira fêmea ao longo da vida para se reproduzir." },
-    { folder: "Pseudoplatystoma_corruscans_Pintado", sci: "Pseudoplatystoma corruscans", name: "Pintado", type: "Água doce", origin: "Nativa", min: 80, habitat: "Poços fundos de grandes rios nas bacias do Paraná, Paraguai", iscas: "Minhocoçu, tuvira, jejum", techniques: "Pesca de fundo pesada e rodada", season: "Fevereiro a Outubro", curiosity: "Apresenta corpo alongado coberto com pintas escuras. É noturno e altamente apreciado na culinária." },
-    { folder: "Hoplias_malabaricus_Traíra", sci: "Hoplias malabaricus", name: "Traíra", type: "Água doce", origin: "Nativa", min: 25, habitat: "Lagoas de águas paradas, brejos, beiras com vegetação", iscas: "Sapos de borracha (frogs), spinnerbaits", techniques: "Trabalho de iscas anti-enrosco sobre a vegetação (camalote)", season: "Ano todo (melhor no calor)", curiosity: "Peixe extremamente resistente que consegue respirar ar atmosférico e sobreviver na lama em épocas de seca." },
-    { folder: "Arapaima_gigas_Pirarucu", sci: "Arapaima gigas", name: "Pirarucu", type: "Água doce", origin: "Nativa", min: 150, habitat: "Lagos e rios de várzea da bacia amazônica", iscas: "Gigantescas iscas softs, peixes vivos", techniques: "Arremesso pesado, Fly Fishing", season: "Junho a Novembro", curiosity: "Um dos maiores peixes de água doce do mundo. Possui respiração aérea obrigatória, subindo à superfície a cada 20 minutos." },
-    { folder: "Piaractus_mesopotamicus_Pacu", sci: "Piaractus mesopotamicus", name: "Pacu", type: "Água doce", origin: "Nativa", min: 40, habitat: "Rios do Pantanal e bacia do Prata, debaixo de matas ciliares", iscas: "Frutas nativas, bolinhas de massa, caranguejo", techniques: "Pesca na batida debaixo das árvores", season: "Setembro a Março", curiosity: "Peixe frugívoro. Fica à espera do som de frutos, como o tucum, caindo na água para abocanhá-los." },
-    { folder: "Colossoma_macropomum_Tambaqui", sci: "Colossoma macropomum", name: "Tambaqui", type: "Água doce", origin: "Nativa", min: 55, habitat: "Rios amazônicos, matas inundadas (igapós)", iscas: "Frutas (castanhas, sementes de seringueira), massas", techniques: "Pesca de espera em águas paradas", season: "Ano todo", curiosity: "Possui uma das maxilas mais fortes entre os peixes, capaz de quebrar sementes extremamente duras como coquinhos." },
-    { folder: "Brachyplatystoma_filamentosum_Piraíba", sci: "Brachyplatystoma filamentosum", name: "Piraíba", type: "Água doce", origin: "Nativa", min: 100, habitat: "Grandes calhas dos rios profundos da bacia amazônica e Tocantins", iscas: "Pedaços de peixes (cachorra, matrinxã)", techniques: "Pesca pesada de fundo, ancorado no canal do rio", season: "Maio a Outubro", curiosity: "Maior bagre do Brasil. Também chamada de 'Filhote' quando jovem. Pode crescer acima de 2 metros." },
-    { folder: "Zungaro_jahu_Jaú", sci: "Zungaro jahu", name: "Jaú", type: "Água doce", origin: "Nativa", min: 90, habitat: "Poços profundos, cachoeiras e pedreiras do pantanal e rio Paraná", iscas: "Iscas naturais inteiras, tuviras, minhocoçu", techniques: "Pesca de fundo extra pesada", season: "Março a Setembro", curiosity: "Sua pescaria exige equipamentos muito fortes. Vive no fundo escuro e é capturado de forma agressiva." },
-    { folder: "Hydrolycus_scomberoides_Cachorra", sci: "Hydrolycus scomberoides", name: "Cachorra", type: "Água doce", origin: "Nativa", min: 40, habitat: "Rios com correnteza forte, rebojos nas bacias Araguaia/Amazonas", iscas: "Iscas artificiais de meia-água, iscas vivas brancas", techniques: "Corrico ou arremesso próximo a pedras", season: "Maio a Outubro (seca)", curiosity: "Suas presas inferiores são tão grandes que possuem dois furos no céu da boca para acomodá-las quando fecham." },
-    { folder: "Boulengerella_cuvieri_Bicuda", sci: "Boulengerella cuvieri", name: "Bicuda", type: "Água doce", origin: "Nativa", min: 35, habitat: "Águas rápidas, superfícies de rios de águas claras e corredeiras", iscas: "Zaras rápidas, iscas de superfície com hélice", techniques: "Arremessos dinâmicos e recolhimento super veloz", season: "Período de seca", curiosity: "Seu nome vem de seu longo focinho hidrodinâmico com o qual impala pequenas presas em alta velocidade." },
-    { folder: "Brycon_amazonicus_Matrinxã", sci: "Brycon amazonicus", name: "Matrinxã", type: "Água doce", origin: "Nativa", min: 30, habitat: "Rios de corredeira, igarapés de águas rápidas", iscas: "Iscas articuladas, pequenos plugs, moscas (fly)", techniques: "Pesca leve e precisa", season: "Abril a Novembro", curiosity: "Muito combativa. Quando fisgada, costuma saltar muito e até engolir a isca profundamente." },
-    { folder: "Plagioscion_squamosissimus_Corvina-de-Rio", sci: "Plagioscion squamosissimus", name: "Corvina de Água Doce", type: "Água doce", origin: "Nativa", min: 25, habitat: "Lagos secos, calhas profundas e baías dos rios da Amazônia e Paraná", iscas: "Jigs de chumbo, camarão vivo", techniques: "Técnica vertical com Jigs (pindocada)", season: "Junho a Outubro", curiosity: "Na sua reprodução emitem sons roncadores bem fortes chamativos que deram à família o nome de 'roncadores'." },
-    { folder: "Pellona_castelnaeana_Apapá-Amarelo", sci: "Pellona castelnaeana", name: "Apapá-amarelo", type: "Água doce", origin: "Nativa", min: 35, habitat: "Rios cristalinos e rebojos profundos, cardumes na superfície", iscas: "Colheres médias, sticks pequenos de meia-água", techniques: "Arremesso de superfície ou iscas brilhantes", season: "Meio do ano", curiosity: "Conhecida como 'Dourada falsa', tem escamas prateado-amareladas muito brilhantes. Salta constantemente." },
-    { folder: "Pseudoplatystoma_tigrinum_Caparari", sci: "Pseudoplatystoma tigrinum", name: "Caparari", type: "Água doce", origin: "Nativa", min: 70, habitat: "Semelhante ao pintado, bacias mais pro Norte (Amazonas / Araguaia)", iscas: "Iscas naturais no fundo, pedaços de carne", techniques: "Fundo com barco ancorado", season: "Maioria do ano", curiosity: "A principal diferença do Pintado é não ter pintas redondas, e sim listras pretas como um tigre." },
-    { folder: "Brycon_hilarii_Piraputanga", sci: "Brycon hilarii", name: "Piraputanga", type: "Água doce", origin: "Nativa", min: 25, habitat: "Águas ricas em oxigênio como Pantanal e Bonito/MS", iscas: "Pequenos frutos, sementes de vegetação ciliar", techniques: "Pesca na batida imitndo queda de frutos", season: "Novembro a Março", curiosity: "A palavra 'Pira' é peixe e 'Pitanga' é vermelho em Tupi. É famosa pela coloração de nadadeiras avermelhada." },
-    { folder: "Cichla_piquiti_Tucunaré-Azul", sci: "Cichla piquiti", name: "Tucunaré-azul", type: "Água doce", origin: "Nativa", min: 30, habitat: "Rios cristalinos, hoje muito presente no Sudeste", iscas: "Zaras, jigs, meia-água", techniques: "Arremessos sequenciais nas pauleiras", season: "Verão / Altas temperaturas", curiosity: "Ganhou essa fama por sua deslumbrante coloração azulada nos rios do Tocantins e Sudeste (Represas)." },
-    { folder: "Megaleporinus_macrocephalus_Piavuçu", sci: "Megaleporinus macrocephalus", name: "Piavuçu", type: "Água doce", origin: "Nativa", min: 30, habitat: "Pantanal, áreas marginais de rios da planície de inundação", iscas: "Caramujo do cerrado ou massas grossas", techniques: "Pesca embarcada de ceva contínua no barranco", season: "Baixa seca", curiosity: "O 'gigante' dos piaus. Cresce incrivelmente bem nas secas do Pantanal e morde iscas com grande vigor." },
-    { folder: "Cichla_pinima_Tucunaré-Pinima", sci: "Cichla pinima", name: "Tucunaré-pinima", type: "Água doce", origin: "Nativa", min: 35, habitat: "Nordeste do Brasil e baías no Norte", iscas: "Iscas grandes de Hélices", techniques: "Hélice de trabalho rápido gerando bastante barulho", season: "Novembro a Fevereiro", curiosity: "Sua principal característica são as manchas pintadas no corpo ao lado das 3 barras verticais." },
+    {
+        id: "cichla_temensis",
+        nomePopular: "Tucunaré-açu",
+        nomeCientifico: "Cichla temensis",
+        tipo: "Água doce",
+        origem: "Nativa",
+        minCM: 35,
+        pesoRecord: "13 kg",
+        habitat: "Rios e lagos de águas claras e escuras da bacia amazônica. Prefere remansos próximos a troncos, pedras e macrófitas aquáticas.",
+        iscas: "Poppers, hélices (prop baits), jerkbaits de 15–20 cm, iscas vivas como tucunaré menor ou matrinxã.",
+        tecnicas: "Arremessos precisos para estruturas (troncos, pedras), trabalho de superfície agressivo com paradas. Idealmente com carretilha de cabecote aberto e linha mono 0.35–0.40mm.",
+        temporada: "Setembro a Março (vazante/seca na Bacia Amazônica). Pico em Outubro e Novembro.",
+        curiosidade: "O maior dos tucunarés, capaz de ultrapassar os 13 kg. Durante a reprodução o macho desenvolve um calo pronunciado na cabeça (giba) e cuida do ninho com agressividade extrema.",
+        imagemUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/Cichla_temensis_Rio_Negro_edit.jpg/1280px-Cichla_temensis_Rio_Negro_edit.jpg",
+        dataAtualizacao: new Date().toISOString()
+    },
+    {
+        id: "salminus_brasiliensis",
+        nomePopular: "Dourado",
+        nomeCientifico: "Salminus brasiliensis",
+        tipo: "Água doce",
+        origem: "Nativa",
+        minCM: 55,
+        pesoRecord: "31 kg",
+        habitat: "Rios com forte correnteza, corredeiras e pedrais nas bacias do Paraná, Uruguai e Paraguai. Prefere águas oxigenadas e frias.",
+        iscas: "Colheres ovais brilhantes, iscas articuladas de meia-água, tuvira viva e lambari. Cores douradas e prata.",
+        tecnicas: "Corrico em corredeiras lançando para montante, arremesso nas margens de rios rápidos. Equipamentos de ação moderada/rápida com linha 0.30–0.35mm.",
+        temporada: "Março a Outubro, com pico na seca (Maio a Agosto). Piracema proibida no verão na maioria dos estados.",
+        curiosidade: "O 'Rei do Rio' da pesca esportiva sul-americana. Possui força descomunal e salta fora d'água espetacularmente quando fisgado. Suas escamas douradas são únicas no mundo.",
+        imagemUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Salminus_brasiliensis_01.jpg/1280px-Salminus_brasiliensis_01.jpg",
+        dataAtualizacao: new Date().toISOString()
+    },
+    {
+        id: "centropomus_undecimalis",
+        nomePopular: "Robalo-flecha",
+        nomeCientifico: "Centropomus undecimalis",
+        tipo: "Salgada/Estuário",
+        origem: "Nativa",
+        minCM: 40,
+        pesoRecord: "24 kg",
+        habitat: "Estuários, manguezais, desembocaduras de rios, costões rochosos e bancos de areia. Tolera bem a transição sal/doce.",
+        iscas: "Camarão vivo, tilápias e tainholas vivas, jigs de 14–21g com cauda shad, swimbaits.",
+        tecnicas: "Pesca em estruturas (postes, raízes, valas de maré) com lançamentos precisos. Light tackle com vara 6–7' médio-pesada.",
+        temporada: "Ano todo no litoral Norte. Pico de Novembro a Março nas regiões Sul e Sudeste (entrada pelo litoral).",
+        curiosidade: "Hermafrodita protândrico: nasce macho e se transforma em fêmea ao longo da vida. Os maiores exemplares são sempre fêmeas.",
+        imagemUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f5/Centropomus_undecimalis.jpg/1280px-Centropomus_undecimalis.jpg",
+        dataAtualizacao: new Date().toISOString()
+    },
+    {
+        id: "pseudoplatystoma_corruscans",
+        nomePopular: "Pintado",
+        nomeCientifico: "Pseudoplatystoma corruscans",
+        tipo: "Água doce",
+        origem: "Nativa",
+        minCM: 80,
+        pesoRecord: "97 kg",
+        habitat: "Poços fundos em grandes rios com fundo arenoso nas bacias do Paraná, Paraguai e São Francisco.",
+        iscas: "Minhocoçu (minhoca grande), tuvira viva, lambari inteiro, filé de peixe robusto.",
+        tecnicas: "Pesca de fundo estacionária com vara pesada, carretilha e linha 0.50–0.70mm. Anzóis circulares #8–12/0.",
+        temporada: "Ano todo. Pico durante a seca (Maio a Outubro). Piracema proibida no verão.",
+        curiosidade: "O pintado tem pintas escuras arredondadas sobre fundo cinza-prata. É um dos mais apreciados na culinária brasileira e migra centenas de quilômetros para reprodução.",
+        imagemUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/Pseudoplatystoma_corruscans_Porto_esperança.jpg/1280px-Pseudoplatystoma_corruscans_Porto_esperança.jpg",
+        dataAtualizacao: new Date().toISOString()
+    },
+    {
+        id: "arapaima_gigas",
+        nomePopular: "Pirarucu",
+        nomeCientifico: "Arapaima gigas",
+        tipo: "Água doce",
+        origem: "Nativa",
+        minCM: 150,
+        pesoRecord: "250 kg",
+        habitat: "Lagos e rios de várzea de águas lentas na bacia Amazônica, especialmente em lagos rasos até 5 metros de profundidade.",
+        iscas: "Iscas artificiais gigantescas (swimbaits 20–30cm), peixes vivos grandes. A pesca esportiva tipo catch-and-release é a principal modalidade.",
+        tecnicas: "Fly fishing com vara #12–14 e linhas com sink-tip, ou arremesso pesado aguardando o pirarucu subir para respirar.",
+        temporada: "Junho a Novembro (seca amazônica). O peixe fica concentrado em lagos com nível baixo.",
+        curiosidade: "Um dos maiores peixes de água doce do mundo. Possui respiração aérea obrigatória e precisa subir à superfície a cada 10–20 minutos — o que o torna visível e acessível à pesca.",
+        imagemUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Arapaima_gigas_1.jpg/1280px-Arapaima_gigas_1.jpg",
+        dataAtualizacao: new Date().toISOString()
+    },
+    {
+        id: "colossoma_macropomum",
+        nomePopular: "Tambaqui",
+        nomeCientifico: "Colossoma macropomum",
+        tipo: "Água doce",
+        origem: "Nativa",
+        minCM: 55,
+        pesoRecord: "44 kg",
+        habitat: "Rios amazônicos e matas inundadas (igapós e várzeas), especialmente sob frutas e sementes caindo na água.",
+        iscas: "Castanha-da-amazônia, sementes de seringueira, caranguejo e iscas de massa com sabor de frutas tropicais.",
+        tecnicas: "Pesca de espera em áreas com matas inundadas, embarcado, com varas médias. Aguardar o som de frutas e sementes caindo.",
+        temporada: "Ano todo na Amazônia. Melhor com as chuvas (Novembro a Fevereiro) quando inunda e abre acesso às matas.",
+        curiosidade: "Possui molares extremamente poderosos — uma das maxilas mais fortes entre os peixes. Consegue quebrar sementes duras como castanhas e coquinhos.",
+        imagemUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Colossoma_macropomum_1.jpg/1280px-Colossoma_macropomum_1.jpg",
+        dataAtualizacao: new Date().toISOString()
+    },
+    {
+        id: "piaractus_mesopotamicus",
+        nomePopular: "Pacu",
+        nomeCientifico: "Piaractus mesopotamicus",
+        tipo: "Água doce",
+        origem: "Nativa",
+        minCM: 40,
+        pesoRecord: "28 kg",
+        habitat: "Rios do Pantanal e bacia do Prata, especialmente sob matas ciliares e próximo a figueiras e tucuns.",
+        iscas: "Frutas nativas (tucum, figo, manga), bolinhas de massa com aniz, caranguejo, milho.",
+        tecnicas: "Pesca na batida — lançar isca embaixo das árvores ribeirinhas simulando queda de frutos. Varas médias 20–30lb.",
+        temporada: "Setembro a Março. Pico em Outubro-Novembro quando as figueiras e tucuns estão frutificando.",
+        curiosidade: "Peixe frugívoro especializado. Ouve o som de frutos e sementes caindo na água e nada rapidamente para comê-los. Seus dentes assemelham-se a molares humanos.",
+        imagemUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Piaractus_mesopotamicus.jpg/1280px-Piaractus_mesopotamicus.jpg",
+        dataAtualizacao: new Date().toISOString()
+    },
+    {
+        id: "brachyplatystoma_filamentosum",
+        nomePopular: "Piraíba",
+        nomeCientifico: "Brachyplatystoma filamentosum",
+        tipo: "Água doce",
+        origem: "Nativa",
+        minCM: 100,
+        pesoRecord: "200 kg",
+        habitat: "Grandes calhas de rios profundos da bacia Amazônica, Tocantins e Araguaia. Vive em profundidades de 20–60 metros.",
+        iscas: "Pedaços grandes de peixes (cachorra, matrinxã, sardinha), jejum robusto no anzol #12/0 ou maior.",
+        tecnicas: "Pesca pesada de fundo com vara de barco, carretilha elétrica ou multiplicadora potente. Linha 0.80mm–1.0mm ou multifilamento 150lb.",
+        temporada: "Maio a Outubro (seca). Durante as cheias migra para áreas de reprodução fora do alcance dos pescadores.",
+        curiosidade: "O maior bagre do Brasil e um dos maiores peixes de água doce do planeta. Os filhotes (chamados de 'filhote') realizam migrações de até 5.000 km na bacia amazônica.",
+        imagemUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Brachyplatystoma_filamentosum.jpg/1280px-Brachyplatystoma_filamentosum.jpg",
+        dataAtualizacao: new Date().toISOString()
+    },
+    {
+        id: "zungaro_jahu",
+        nomePopular: "Jaú",
+        nomeCientifico: "Zungaro jahu",
+        tipo: "Água doce",
+        origem: "Nativa",
+        minCM: 90,
+        pesoRecord: "140 kg",
+        habitat: "Poços profundos, quedas d'água, pedrais e cavas em grandes rios do Pantanal, Paraná e São Francisco.",
+        iscas: "Iscas naturais inteiras (lambari, tuvira grande), filé de peixe em anzol /10-12/0.",
+        tecnicas: "Pesca de fundo extra-pesada com âncora. Exige equipamento de altíssima resistência — varas acima de 60lb, linha multifilamento 200lb.",
+        temporada: "Março a Setembro (seca). Difícil de capturar durante cheia pois se dispersa entre as matas.",
+        curiosidade: "Vive exclusivamente em poços profundos e escuros. Sua pescaria requer paciência extrema e equipamentos robustíssimos. A pressão de captura quase levou a espécie à ameaça de extinção.",
+        imagemUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/Zungaro_jahu.jpg/1280px-Zungaro_jahu.jpg",
+        dataAtualizacao: new Date().toISOString()
+    },
+    {
+        id: "hydrolycus_scomberoides",
+        nomePopular: "Cachorra",
+        nomeCientifico: "Hydrolycus scomberoides",
+        tipo: "Água doce",
+        origem: "Nativa",
+        minCM: 40,
+        pesoRecord: "18 kg",
+        habitat: "Rios com forte correnteza, rebojos e poços abaixo de pedras e cachoeiras nas bacias Araguaia, Amazonas e Tocantins.",
+        iscas: "Iscas metálicas pesadas de meia-água (jigs e colheres), iscas vivas prateadas como matrinxã.",
+        tecnicas: "Corrico em corredeiras ou arremesso próximo a pedras e remansos. Recolhimento rápido e variado. Vara de ação rápida.",
+        temporada: "Maio a Outubro (seca). Os cardumes ficam concentrados nos rebojos durante a estiagem.",
+        curiosidade: "Suas duas presas inferiores são tão enormes que existem dois buracos específicos no céu da boca para acomodá-las quando a boca fecha. A pressão de mordida é impressionante.",
+        imagemUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d1/Hydrolycus_scomberoides.jpg/1280px-Hydrolycus_scomberoides.jpg",
+        dataAtualizacao: new Date().toISOString()
+    },
+    {
+        id: "hoplias_malabaricus",
+        nomePopular: "Traíra",
+        nomeCientifico: "Hoplias malabaricus",
+        tipo: "Água doce",
+        origem: "Nativa",
+        minCM: 25,
+        pesoRecord: "8 kg",
+        habitat: "Lagoas de água parada, brejos, beiras com vegetação densa (camalotes, aguapés), represas rasas e pântanos.",
+        iscas: "Sapos de borracha (frogs), spinnerbaits com saia volumosa, swimbaits anti-enrosco.",
+        tecnicas: "Pesca de flog (sapo artificial) sobre vegetação flutuante. Lançar sobre o camalote e arrastar lentamente. Vara de ação rápida e linha grossa (50–80lb PE).",
+        temporada: "Ano todo. Mais ativa em dias quentes. Verão com águas altas traz acesso ao camalote.",
+        curiosidade: "Um dos peixes mais resistentes do Brasil. Consegue respirar ar atmosférico diretamente e sobreviver na lama seca por meses durante estiagens severas.",
+        imagemUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Hoplias_malabaricus_edit.jpg/1280px-Hoplias_malabaricus_edit.jpg",
+        dataAtualizacao: new Date().toISOString()
+    },
+    {
+        id: "brycon_amazonicus",
+        nomePopular: "Matrinxã",
+        nomeCientifico: "Brycon amazonicus",
+        tipo: "Água doce",
+        origem: "Nativa",
+        minCM: 30,
+        pesoRecord: "5 kg",
+        habitat: "Igarapés e rios de corredeiras de águas rápidas, claras ou pretas na bacia Amazônica e Araguaia.",
+        iscas: "Iscas articuladas finas, pequenos jerkbaits, strimmers e moscas de fly (padrões locais).",
+        tecnicas: "Pesca leve com varas de 5'6\"–6' e monofilamento 0.25mm. Lançamentos precisos em corredeiras rasas e chapadões.",
+        temporada: "Abril a Novembro. Mais combativa durante a seca quando as corredeiras ficam expostas.",
+        curiosidade: "A matrinxã é extremamente combativa para seu tamanho — realiza saltos fora d'água e combates acrobáticos que encantam pescadores de fly fishing.",
+        imagemUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Brycon_amazonicus.jpg/1280px-Brycon_amazonicus.jpg",
+        dataAtualizacao: new Date().toISOString()
+    },
+    {
+        id: "pseudoplatystoma_tigrinum",
+        nomePopular: "Caparari",
+        nomeCientifico: "Pseudoplatystoma tigrinum",
+        tipo: "Água doce",
+        origem: "Nativa",
+        minCM: 70,
+        pesoRecord: "80 kg",
+        habitat: "Grandes rios da bacia Amazônica e Araguaia, em poços fundos e canais principais com fundo arenoso.",
+        iscas: "Iscas naturais no fundo (lambari, tuvira, filé de peixe), pedaços de carne.",
+        tecnicas: "Pesca de fundo com barco ancorado no canal do rio. Equipamento pesado, linha 0.60–0.80mm.",
+        temporada: "Durante a maior parte do ano. Melhor na seca quando os peixes se concentram nos poços.",
+        curiosidade: "A diferença principal em relação ao pintado são as listras pretas verticais (como um tigre) no lugar das pintas arredondadas. Ocorre naturalmente em simpatria com o pintado.",
+        imagemUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/Pseudoplatystoma_tigrinum.jpg/1280px-Pseudoplatystoma_tigrinum.jpg",
+        dataAtualizacao: new Date().toISOString()
+    },
+    {
+        id: "boulengerella_cuvieri",
+        nomePopular: "Bicuda",
+        nomeCientifico: "Boulengerella cuvieri",
+        tipo: "Água doce",
+        origem: "Nativa",
+        minCM: 35,
+        pesoRecord: "6 kg",
+        habitat: "Corredeiras e superfícies de rios de águas claras na bacia Amazônica e Araguaia. Forma cardumes na superfície.",
+        iscas: "Zaras de recolhimento veloz, iscas de superfície com hélice (prop baits), stickbaits finos.",
+        tecnicas: "Arremessos dinâmicos com recolhimento super acelerado imitando peixinho em fuga. Fundamental a velocidade da recuperação.",
+        temporada: "Período de seca (Maio a Outubro) quando os cardumes ficam expostos nas corredeiras.",
+        curiosidade: "Seu longo focinho hidrodinâmico funciona como um arpão: ela impala pequenas presas em alta velocidade antes de engoli-las. Daí o nome 'bicuda'.",
+        imagemUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Boulengerella_cuvieri.jpg/1280px-Boulengerella_cuvieri.jpg",
+        dataAtualizacao: new Date().toISOString()
+    },
+    {
+        id: "plagioscion_squamosissimus",
+        nomePopular: "Corvina de Rio",
+        nomeCientifico: "Plagioscion squamosissimus",
+        tipo: "Água doce",
+        origem: "Nativa",
+        minCM: 25,
+        pesoRecord: "4 kg",
+        habitat: "Calhas profundas, lagos e baías dos grandes rios da Amazônia, Paraná e Tocantins. Forma cardumes em estruturas submersas.",
+        iscas: "Jigs de chumbo 14–21g, camarão vivo, minhoca e sardinha. Iscas brilhantes são preferidas.",
+        tecnicas: "Pesca vertical com jigs (pindocada) — descer o jig até o fundo e sacudir verticalmente. Muito eficiente em cardumes localizados.",
+        temporada: "Junho a Outubro. Os cardumes ficam mais concentrados na seca em poços definidos.",
+        curiosidade: "Na época de reprodução os corvinas emitem sons roncadores intensos usados para atração de parceiros. Esta característica acústica deu o nome à família Sciaenidae de 'roncadores'.",
+        imagemUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Plagioscion_squamosissimus.jpg/1280px-Plagioscion_squamosissimus.jpg",
+        dataAtualizacao: new Date().toISOString()
+    },
+    {
+        id: "cichla_piquiti",
+        nomePopular: "Tucunaré-azul",
+        nomeCientifico: "Cichla piquiti",
+        tipo: "Água doce",
+        origem: "Nativa",
+        minCM: 30,
+        pesoRecord: "7 kg",
+        habitat: "Rios cristalinos do Tocantins e Araguaia; hoje amplamente difundido em represas do Sudeste brasileiro.",
+        iscas: "Zaras, jigs de silicone, iscas de meia-água e superfície, swimbaits de 10–15cm.",
+        tecnicas: "Arremessos sequenciais de precisão para estruturas (troncos, pedras). Trabalho de fundo e meia-água com paradas longas.",
+        temporada: "Verão e altas temperaturas (Outubro a Março). Mais agressivo em águas quentes.",
+        curiosidade: "Espécie endêmica do Tocantins, ganhou coloração azul-esverdeada deslumbrante nos machos maduros. Foi o tucunaré que mais se adaptou às represas do Sudeste como Furnas, Serra da Mesa e Tucuruí.",
+        imagemUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Cichla_piquiti.jpg/1280px-Cichla_piquiti.jpg",
+        dataAtualizacao: new Date().toISOString()
+    },
+    {
+        id: "brycon_hilarii",
+        nomePopular: "Piraputanga",
+        nomeCientifico: "Brycon hilarii",
+        tipo: "Água doce",
+        origem: "Nativa",
+        minCM: 25,
+        pesoRecord: "5 kg",
+        habitat: "Rios oxigenados e corredeiras do Pantanal, especialmente em Bonito/MS. Prefere margens com vegetação ribeirinha.",
+        iscas: "Pequenas frutas nativas, sementes de vegetação ciliar, iscas de mosca, pequenos plugs articulados.",
+        tecnicas: "Pesca na batida imitando queda de frutos — lançar a isca próximo à margem com vegetação. Muito popular no fly fishing de rios cristalinos.",
+        temporada: "Novembro a Março (período de frutificação das matas ciliares). Excelente no verão chuvoso.",
+        curiosidade: "'Pira' é peixe e 'putanga' vem de pitanga (vermelho) em Tupi. A coloração das nadadeiras dorsal, peitoral e caudal é vermelha-alaranjada vibrante — belíssima.",
+        imagemUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Brycon_hilarii.jpg/1280px-Brycon_hilarii.jpg",
+        dataAtualizacao: new Date().toISOString()
+    },
+    {
+        id: "pellona_castelnaeana",
+        nomePopular: "Apapá-amarelo",
+        nomeCientifico: "Pellona castelnaeana",
+        tipo: "Água doce",
+        origem: "Nativa",
+        minCM: 35,
+        pesoRecord: "5 kg",
+        habitat: "Rios cristalinos de águas claras com corredeiras e rebojos profundos da bacia Amazônica e Araguaia.",
+        iscas: "Colheres médias ovais, sticks pequenos de meia-água, iscas brilhantes prateadas e douradas.",
+        tecnicas: "Arremesso de superfície ou meia-água com recolhimento médio. Segue cardumes em rebojos dos rios.",
+        temporada: "Período de seca (meio do ano). Os cardumes concentram-se em corredeiras específicas.",
+        curiosidade: "Conhecida como 'dourada falsa' por suas escamas prateado-amareladas extremamente brilhantes. Quando fisgada, salta constantemente fora d'água em exibições acrobáticas.",
+        imagemUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Pellona_castelnaeana.jpg/1280px-Pellona_castelnaeana.jpg",
+        dataAtualizacao: new Date().toISOString()
+    },
+    {
+        id: "megaleporinus_macrocephalus",
+        nomePopular: "Piavuçu",
+        nomeCientifico: "Megaleporinus macrocephalus",
+        tipo: "Água doce",
+        origem: "Nativa",
+        minCM: 30,
+        pesoRecord: "7 kg",
+        habitat: "Rios e planícies de inundação do Pantanal e bacia do Paraguai. Frequenta margens barrentas com vegetação.",
+        iscas: "Caramujo do cerrado (pacu-de-concha) esmagado, massas grossas com farinha de carne, frutas.",
+        tecnicas: "Pesca embarcada com ceva contínua na margem (barranco). Lançamentos curtos à margem com anzóis #4–8.",
+        temporada: "Período de seca baixa no Pantanal (Julho a Outubro) quando as águas estão baixas e claras.",
+        curiosidade: "O 'gigante' da família dos piaus. Cresce notavelmente no Pantanal durante as secas e é altamente combativo para seu tamanho.",
+        imagemUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Leporinus_macrocephalus.jpg/1280px-Leporinus_macrocephalus.jpg",
+        dataAtualizacao: new Date().toISOString()
+    },
+    {
+        id: "cichla_pinima",
+        nomePopular: "Tucunaré-pinima",
+        nomeCientifico: "Cichla pinima",
+        tipo: "Água doce",
+        origem: "Nativa",
+        minCM: 35,
+        pesoRecord: "9 kg",
+        habitat: "Rios do Nordeste do Brasil (Tocantins/PA) e baías no Norte. Prefere águas mais escuras e ricas em taninos.",
+        iscas: "Iscas grandes de hélice (prop baits), poppers de 10–15cm, swimbaits de superfície.",
+        tecnicas: "Trabalho de hélice rápido gerando barulho e espirros — esta espécie responde agressivamente ao disturbo de superfície.",
+        temporada: "Novembro a Fevereiro (verão). Mais agressivo no período quente.",
+        curiosidade: "Sua principal característica estética são as manchas irregulares pintadas no corpo ao lado das 3 barras verticais escuras. Uma das espécies mais exuberantes do gênero Cichla.",
+        imagemUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Cichla_pinima.jpg/1280px-Cichla_pinima.jpg",
+        dataAtualizacao: new Date().toISOString()
+    },
 ];
 
 async function seed() {
-    console.log("🚀 Iniciando migração das 20 grandes espécies do Brasil (Imagens Locais)...");
+    console.log("🚀 Iniciando limpeza e seed do TOP 20...");
 
-    const DATASET_DIR = path.join("c:", "Users", "Pichau", "OneDrive", "Documentos", "PEIXES", "dataset_peixes");
-    const PUBLIC_DIR = path.join(__dirname, "..", "public", "images", "peixes");
+    // 1. Deletar todos os documentos existentes na coleção peixes
+    console.log("🗑️  Limpando coleção 'peixes' existente...");
+    const snapshot = await getDocs(collection(db, 'peixes'));
+    const deletePromises = snapshot.docs.map(d => deleteDoc(doc(db, 'peixes', d.id)));
+    await Promise.all(deletePromises);
+    console.log(`✅ ${snapshot.docs.length} documentos removidos.`);
 
-    if (!fs.existsSync(PUBLIC_DIR)) {
-        fs.mkdirSync(PUBLIC_DIR, { recursive: true });
-    }
-
+    // 2. Inserir os 20 novos documentos
+    console.log("📝 Inserindo os 20 peixes curados...");
     let count = 0;
-
     for (const peixe of TOP_20) {
-        const docId = peixe.sci.toLowerCase().replace(/[\s/]+/g, "_");
-
-        let imageUrl = null;
-
-        // Puxar da pasta
-        const peixeFolderPath = path.join(DATASET_DIR, peixe.folder);
-        if (fs.existsSync(peixeFolderPath)) {
-            const files = fs.readdirSync(peixeFolderPath);
-            const imageFile = files.find(f => f.endsWith('.jpg') || f.endsWith('.png'));
-
-            if (imageFile) {
-                const imgLocalPath = path.join(peixeFolderPath, imageFile);
-                const ext = path.extname(imageFile);
-                const destFileName = `${docId}${ext}`;
-                const destPath = path.join(PUBLIC_DIR, destFileName);
-
-                try {
-                    fs.copyFileSync(imgLocalPath, destPath);
-                    imageUrl = `/images/peixes/${destFileName}`;
-                    console.log(`📸 Imagem local salva: ${imageUrl}`);
-                } catch (e) {
-                    console.error("❌ Erro copiando imagem:", e);
-                }
-            }
-        }
-
-        // Salvar no Firestore
-        const peixeRef = doc(db, 'peixes', docId);
-
-        const saveData = {
-            id: docId,
-            nomeCientifico: peixe.sci,
-            nomePopular: peixe.name,
-            tipo: peixe.type,
-            origem: peixe.origin,
-            minCM: peixe.min,
-            habitat: peixe.habitat,
-            iscas: peixe.iscas,
-            tecnicas: peixe.techniques,
-            temporada: peixe.season,
-            curiosidade: peixe.curiosity,
-            imagemUrl: imageUrl,
-            dataAtualizacao: new Date().toISOString()
-        };
-
-        await setDoc(peixeRef, saveData);
-        console.log(`✅ Salvo no Firestore: ${peixe.name}`);
+        const { id, ...data } = peixe;
+        await setDoc(doc(db, 'peixes', id), data);
+        console.log(`✅ ${peixe.nomePopular} (${id})`);
         count++;
     }
 
-    console.log(`🎉 Finalizado! ${count} peixes do TOP 20 migrados.`);
+    console.log(`\n🎉 Seed concluído! ${count}/20 peixes inseridos no Firestore.`);
     process.exit(0);
 }
 
-seed().catch(console.error);
+seed().catch(e => { console.error(e); process.exit(1); });

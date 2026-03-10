@@ -15,6 +15,9 @@ export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    // Temporary bypass — remove when Google auth is fixed
+    const bypassLogin = () => setUser({ uid: 'temp', displayName: 'Pescador', email: 'temp@fishfinder.app' });
+
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             setUser(user);
@@ -70,7 +73,8 @@ export function AuthProvider({ children }) {
             signInWithGoogle,
             loginWithEmail,
             registerWithEmail,
-            logout
+            logout,
+            bypassLogin,
         }}>
             {!loading && children}
         </AuthContext.Provider>

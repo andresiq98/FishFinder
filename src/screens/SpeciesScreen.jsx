@@ -105,21 +105,31 @@ export default function SpeciesScreen() {
                 ))}
             </div>
 
-            {detail.minCM > 0 && (
-                <div style={{
-                    background: C.yellowBg, borderRadius: 16, padding: "20px", marginTop: 12,
-                    border: `1px solid ${C.yellow}30`, display: "flex", alignItems: "center", gap: 16
-                }}>
-                    <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 12, fontWeight: 800, color: C.yellow, marginBottom: 4, textTransform: "uppercase" }}>Tamanho mínimo</div>
-                        <div style={{ fontSize: 28, fontWeight: 900, color: C.yellow, fontFamily: 'Outfit, sans-serif' }}>{detail.minCM} cm</div>
-                        <div style={{ fontSize: 11, color: `${C.yellow}90`, marginTop: 6, lineHeight: 1.4 }}>
-                            Regulamentação estadual sujeita a alterações. Consulte a tela inicial.
+            {(detail.minCM > 0 || detail.pesoRecord) && (
+                <div style={{ display: 'grid', gridTemplateColumns: detail.minCM > 0 && detail.pesoRecord ? '1fr 1fr' : '1fr', gap: 12, marginTop: 12 }}>
+                    {detail.minCM > 0 && (
+                        <div style={{
+                            background: C.yellowBg, borderRadius: 16, padding: "20px",
+                            border: `1px solid ${C.yellow}30`, display: "flex", flexDirection: "column", gap: 4
+                        }}>
+                            <div style={{ fontSize: 11, fontWeight: 800, color: C.yellow, textTransform: "uppercase" }}>Tamanho mínimo</div>
+                            <div style={{ fontSize: 28, fontWeight: 900, color: C.yellow, fontFamily: 'Outfit, sans-serif' }}>{detail.minCM} cm</div>
+                            <div style={{ fontSize: 10, color: `${C.yellow}80`, lineHeight: 1.4 }}>Consulte regulamentação local.</div>
                         </div>
-                    </div>
-                    <Icon name="check" size={32} color={C.yellow} />
+                    )}
+                    {detail.pesoRecord && (
+                        <div style={{
+                            background: `${C.water}12`, borderRadius: 16, padding: "20px",
+                            border: `1px solid ${C.water}30`, display: "flex", flexDirection: "column", gap: 4
+                        }}>
+                            <div style={{ fontSize: 11, fontWeight: 800, color: C.water, textTransform: "uppercase" }}>Recorde de peso</div>
+                            <div style={{ fontSize: 28, fontWeight: 900, color: C.water, fontFamily: 'Outfit, sans-serif' }}>{detail.pesoRecord}</div>
+                            <div style={{ fontSize: 10, color: `${C.water}80`, lineHeight: 1.4 }}>Captura esportiva documentada.</div>
+                        </div>
+                    )}
                 </div>
             )}
+
         </div>
     );
 

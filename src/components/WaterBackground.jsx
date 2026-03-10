@@ -184,13 +184,7 @@ export default function WaterBackground({ opacity = 1 }) {
                 }}
             />
 
-            {/* Horizontal shimmer line (light reflection) */}
-            <div style={{
-                position: 'fixed', top: '42%', left: '-15%', right: '-15%',
-                height: 1,
-                background: 'linear-gradient(90deg, transparent, #E8A02018, #FFD68510, transparent)',
-                transform: 'rotate(-1.5deg)',
-            }} />
+
         </div>
     );
 }
