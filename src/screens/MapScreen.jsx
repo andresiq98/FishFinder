@@ -150,6 +150,7 @@ export default function MapScreen() {
                     mapId="DEMO_MAP_ID"
                     disableDefaultUI={true}
                     gestureHandling="greedy"
+                    onClick={() => { setSelectedSpot(null); setShowDetail(false); }}
                 >
                     {!loading && filtered.map((spot) => {
                         const isSelected = selectedSpot?.id === spot.id;
