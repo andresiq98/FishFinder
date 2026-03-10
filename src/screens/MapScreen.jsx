@@ -1,12 +1,31 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Map, AdvancedMarker } from '@vis.gl/react-google-maps';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { COLORS as C } from '../theme/colors';
 import Icon from '../components/Icon';
-import { SPOTS } from '../data/mockData';
 
 export default function MapScreen() {
+    const [spots, setSpots] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [selectedSpot, setSelectedSpot] = useState(null);
     const [filter, setFilter] = useState("Todos");
     const filters = ["Todos", "Rios", "Represas", "Pesqueiros", "Costão"];
+
+    useEffect(() => {
+        const fetchSpots = async () => {
+            try {
+                const querySnapshot = await getDocs(collection(db, "spots"));
+                const fetchedSpots = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                setSpots(fetchedSpots);
+            } catch (error) {
+                console.error("Error fetching spots:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchSpots();
+    }, []);
 
     return (
         <div style={{ display: "flex", flexDirection: "column", height: "100vh", paddingBottom: 80, animation: "fadeUp 0.4s ease-out" }}>
@@ -41,56 +60,48 @@ export default function MapScreen() {
 
             {/* Map area */}
             <div style={{
-                flex: 1, background: `linear-gradient(170deg, #0B1926 0%, #132840 40%, #0F3D2E 100%)`,
+                flex: 1,
                 position: "relative", margin: "0 16px", borderRadius: 20, overflow: "hidden",
-                border: `1px solid ${C.border}`, boxShadow: `inset 0 0 40px rgba(0,0,0,0.5)`
+                border: `1px solid ${C.border}`, boxShadow: `0 8px 32px rgba(0,0,0,0.3)`
             }}>
-                {/* Grid lines to mock map texture */}
-                {[...Array(6)].map((_, i) => (
-                    <div key={`h${i}`} style={{ position: "absolute", top: `${i * 20}%`, left: 0, right: 0, height: 1, background: `${C.water}08` }} />
-                ))}
-                {[...Array(6)].map((_, i) => (
-                    <div key={`v${i}`} style={{ position: "absolute", left: `${i * 20}%`, top: 0, bottom: 0, width: 1, background: `${C.water}08` }} />
-                ))}
+                <Map
+                    defaultCenter={{ lat: -15, lng: -50 }}
+                    defaultZoom={4}
+                    mapId="DEMO_MAP_ID"
+                    disableDefaultUI={true}
+                    gestureHandling="greedy"
+                >
+                    {!loading && spots.map((spot) => {
+                        if (filter !== "Todos" && spot.type !== filter.slice(0, -1) && spot.type !== filter) return null;
 
-                {/* Pins */}
-                {SPOTS.map((spot, i) => {
-                    if (filter !== "Todos" && spot.type !== filter.slice(0, -1) && spot.type !== filter) return null;
+                        const isSelected = selectedSpot?.id === spot.id;
 
-                    const positions = [
-                        { top: "20%", left: "30%" }, { top: "35%", left: "55%" },
-                        { top: "60%", left: "25%" }, { top: "15%", left: "75%" },
-                        { top: "70%", left: "65%" }, { top: "45%", left: "45%" },
-                    ];
-                    const p = positions[i] || { top: "50%", left: "50%" };
-                    const isSelected = selectedSpot?.id === spot.id;
+                        // Calculate visual style based on spot type
+                        let bg = C.green;
+                        if (spot.type === "Rio") bg = C.water;
+                        if (spot.type === "Represa") bg = C.blue;
 
-                    return (
-                        <div key={spot.id} onClick={() => setSelectedSpot(isSelected ? null : spot)} style={{
-                            position: "absolute", ...p, transform: "translate(-50%, -100%)", cursor: "pointer",
-                            zIndex: isSelected ? 10 : 1, transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
-                        }}>
-                            <div style={{
-                                width: isSelected ? 36 : 28, height: isSelected ? 36 : 28,
-                                borderRadius: "50% 50% 50% 0", transform: "rotate(-45deg)",
-                                background: spot.type === "Rio" ? C.water : spot.type === "Represa" ? C.blue : C.green,
-                                border: `3px solid ${C.text}`, transition: "all 0.3s",
-                                boxShadow: isSelected ? `0 0 24px ${C.water}80` : "0 4px 8px rgba(0,0,0,0.3)",
-                            }} />
-                        </div>
-                    );
-                })}
+                        return (
+                            <AdvancedMarker
+                                key={spot.id}
+                                position={{ lat: spot.lat, lng: spot.lng }}
+                                onClick={() => setSelectedSpot(isSelected ? null : spot)}
+                                zIndex={isSelected ? 10 : 1}
+                            >
+                                <div style={{
+                                    width: isSelected ? 36 : 28, height: isSelected ? 36 : 28,
+                                    borderRadius: "50% 50% 50% 0", transform: "rotate(-45deg)",
+                                    background: bg,
+                                    border: `3px solid ${C.text}`, transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                                    boxShadow: isSelected ? `0 0 24px ${C.water}80` : "0 4px 8px rgba(0,0,0,0.3)",
+                                    cursor: "pointer"
+                                }} />
+                            </AdvancedMarker>
+                        );
+                    })}
+                </Map>
 
-                {/* My location */}
-                <div style={{ position: "absolute", top: "50%", left: "40%", transform: "translate(-50%, -50%)" }}>
-                    <div style={{
-                        width: 18, height: 18, borderRadius: 9, background: C.orange,
-                        border: `3px solid ${C.text}`, boxShadow: `0 0 16px ${C.orange}`,
-                        animation: "pulseGlow 2s infinite"
-                    }} />
-                </div>
-
-                {/* Add spot FAB */}
+                {/* Add spot FAB overlay */}
                 <div style={{
                     position: "absolute", bottom: 16, right: 16, width: 56, height: 56,
                     borderRadius: 28, background: `linear-gradient(135deg, ${C.water}, ${C.waterDark})`, display: "flex",
@@ -139,7 +150,8 @@ export default function MapScreen() {
                         <div style={{ fontSize: 12, color: C.textDim, fontWeight: 700, marginBottom: 12, textTransform: "uppercase", letterSpacing: 1 }}>
                             Próximos a você
                         </div>
-                        {SPOTS.slice(0, 2).map(spot => (
+                        {loading && <div style={{ color: C.textDim, fontSize: 14 }}>Carregando pontos de pesca...</div>}
+                        {!loading && spots.slice(0, 2).map(spot => (
                             <div key={spot.id} onClick={() => setSelectedSpot(spot)} style={{
                                 background: C.cardHover, borderRadius: 16, padding: 12, marginBottom: 8,
                                 border: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between",
