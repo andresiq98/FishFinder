@@ -1,16 +1,39 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { COLORS as C } from '../theme/colors';
 import Icon from '../components/Icon';
-import { SPECIES } from '../data/mockData';
 
 export default function SpeciesScreen() {
+    const [species, setSpecies] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [detail, setDetail] = useState(null);
     const [typeFilter, setTypeFilter] = useState("Todas");
 
-    const filtered = SPECIES.filter(s =>
-        s.name.toLowerCase().includes(search.toLowerCase()) &&
-        (typeFilter === "Todas" || (typeFilter === "Água doce" && s.type === "Água doce") || (typeFilter === "Salgada" && s.type !== "Água doce") || (typeFilter === "Exótica" && s.origin === "Exótica"))
+    useEffect(() => {
+        const fetchSpecies = async () => {
+            try {
+                const querySnapshot = await getDocs(collection(db, 'peixes'));
+                const speciesData = querySnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                // Ordenar por nome popular alfabeticamente
+                speciesData.sort((a, b) => a.nomePopular.localeCompare(b.nomePopular));
+                setSpecies(speciesData);
+            } catch (error) {
+                console.error("Erro ao buscar espécies:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchSpecies();
+    }, []);
+
+    const filtered = species.filter(s =>
+        s.nomePopular.toLowerCase().includes(search.toLowerCase()) &&
+        (typeFilter === "Todas" || (typeFilter === "Água doce" && s.tipo === "Água doce") || (typeFilter === "Salgada" && s.tipo !== "Água doce") || (typeFilter === "Exótica" && s.origem === "Exótica"))
     );
 
     if (detail) return (
@@ -24,38 +47,48 @@ export default function SpeciesScreen() {
             </div>
 
             <div style={{
-                height: 180, background: `linear-gradient(135deg, ${C.blueDim}40, ${C.card})`,
+                height: 240, background: C.card,
                 borderRadius: 24, display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 80, marginBottom: 20, border: `1px solid ${C.blue}20`,
-                boxShadow: `0 12px 40px rgba(0,0,0,0.3)`
+                marginBottom: 20, border: `1px solid ${C.border}`,
+                boxShadow: `0 12px 40px rgba(0,0,0,0.3)`, overflow: 'hidden', position: 'relative'
             }}>
-                <span style={{ animation: "float 4s ease-in-out infinite" }}>{detail.img}</span>
+                {detail.imagemUrl ? (
+                    <img src={detail.imagemUrl} alt={detail.nomePopular} style={{
+                        width: "100%", height: "100%", objectFit: "cover"
+                    }} />
+                ) : (
+                    <span style={{ fontSize: 60, color: C.textDim }}>🐟</span>
+                )}
+                <div style={{
+                    position: 'absolute', bottom: 0, left: 0, right: 0, height: '40%',
+                    background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)'
+                }}></div>
             </div>
 
             <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
                 <span style={{
                     fontSize: 11, padding: "6px 14px", borderRadius: 12, fontWeight: 700,
-                    background: detail.origin === "Nativa" ? `${C.green}15` : `${C.amber}15`,
-                    color: detail.origin === "Nativa" ? C.green : C.amber,
+                    background: detail.origem === "Nativa" ? `${C.green}15` : `${C.amber}15`,
+                    color: detail.origem === "Nativa" ? C.green : C.amber,
                     boxShadow: `0 4px 12px rgba(0,0,0,0.1)`
-                }}>{detail.origin}</span>
+                }}>{detail.origem}</span>
                 <span style={{
                     fontSize: 11, padding: "6px 14px", borderRadius: 12, fontWeight: 700,
                     background: `${C.water}15`, color: C.water,
                     boxShadow: `0 4px 12px rgba(0,0,0,0.1)`
-                }}>{detail.type}</span>
+                }}>{detail.tipo}</span>
             </div>
 
-            <div style={{ fontSize: 28, fontWeight: 900, fontFamily: 'Outfit, sans-serif' }}>{detail.name}</div>
-            <div style={{ fontSize: 14, color: C.textDim, fontStyle: "italic", marginBottom: 24, marginTop: 4 }}>{detail.sci}</div>
+            <div style={{ fontSize: 28, fontWeight: 900, fontFamily: 'Outfit, sans-serif' }}>{detail.nomePopular}</div>
+            <div style={{ fontSize: 14, color: C.textDim, fontStyle: "italic", marginBottom: 24, marginTop: 4 }}>{detail.nomeCientifico}</div>
 
             <div style={{ display: "grid", gap: 12 }}>
                 {[
                     { title: "Habitat", content: detail.habitat, icon: "map" },
                     { title: "Melhores iscas", content: detail.iscas, icon: "star" },
-                    { title: "Técnicas", content: detail.techniques, icon: "target" },
-                    { title: "Temporada", content: detail.season, icon: "sun" },
-                    { title: "Curiosidade", content: detail.curiosity, icon: "search" },
+                    { title: "Técnicas", content: detail.tecnicas, icon: "target" },
+                    { title: "Temporada", content: detail.temporada, icon: "sun" },
+                    { title: "Curiosidade", content: detail.curiosidade, icon: "search" },
                 ].map(section => (
                     <div key={section.title} style={{
                         background: C.cardHover, borderRadius: 16, padding: "16px 20px",
@@ -72,14 +105,14 @@ export default function SpeciesScreen() {
                 ))}
             </div>
 
-            {detail.min > 0 && (
+            {detail.minCM > 0 && (
                 <div style={{
                     background: C.yellowBg, borderRadius: 16, padding: "20px", marginTop: 12,
                     border: `1px solid ${C.yellow}30`, display: "flex", alignItems: "center", gap: 16
                 }}>
                     <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 12, fontWeight: 800, color: C.yellow, marginBottom: 4, textTransform: "uppercase" }}>Tamanho mínimo</div>
-                        <div style={{ fontSize: 28, fontWeight: 900, color: C.yellow, fontFamily: 'Outfit, sans-serif' }}>{detail.min} cm</div>
+                        <div style={{ fontSize: 28, fontWeight: 900, color: C.yellow, fontFamily: 'Outfit, sans-serif' }}>{detail.minCM} cm</div>
                         <div style={{ fontSize: 11, color: `${C.yellow}90`, marginTop: 6, lineHeight: 1.4 }}>
                             Regulamentação estadual sujeita a alterações. Consulte a tela inicial.
                         </div>
@@ -125,46 +158,62 @@ export default function SpeciesScreen() {
                 ))}
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                {filtered.map(sp => (
-                    <div key={sp.id} onClick={() => setDetail(sp)} style={{
-                        background: C.card, borderRadius: 16, padding: "16px", border: `1px solid ${C.border}`,
-                        display: "flex", alignItems: "center", gap: 16, cursor: "pointer", transition: "transform 0.2s",
-                        boxShadow: `0 4px 12px rgba(0,0,0,0.1)`
-                    }}
-                        onMouseDown={e => e.currentTarget.style.transform = "scale(0.98)"}
-                        onMouseUp={e => e.currentTarget.style.transform = "scale(1)"}
-                    >
-                        <div style={{
-                            width: 56, height: 56, borderRadius: 16, fontSize: 32,
-                            background: `linear-gradient(135deg, ${C.water}20, ${C.surface})`, border: `1px solid ${C.water}30`,
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            boxShadow: `inset 0 0 10px rgba(0,0,0,0.2)`
-                        }}>{sp.img}</div>
-                        <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 16, fontWeight: 800, fontFamily: 'Outfit, sans-serif' }}>{sp.name}</div>
-                            <div style={{ fontSize: 12, color: C.textDim, fontStyle: "italic", marginTop: 2 }}>{sp.sci}</div>
-                            <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
-                                <span style={{
-                                    fontSize: 10, padding: "3px 8px", borderRadius: 6, fontWeight: 600,
-                                    background: sp.origin === "Nativa" ? `${C.green}15` : `${C.amber}15`,
-                                    color: sp.origin === "Nativa" ? C.green : C.amber,
-                                }}>{sp.origin}</span>
-                                <span style={{
-                                    fontSize: 10, padding: "3px 8px", borderRadius: 6, fontWeight: 600,
-                                    background: `${C.blue}15`, color: C.blue,
-                                }}>{sp.type}</span>
+            {loading ? (
+                <div style={{ padding: 40, textAlign: 'center', color: C.textDim }}>
+                    <div style={{
+                        width: 30, height: 30, borderRadius: 15, border: `3px solid ${C.water}`,
+                        borderTopColor: 'transparent', animation: "spin 1s linear infinite", margin: "0 auto 12px"
+                    }} />
+                    Carregando espécies...
+                </div>
+            ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    {filtered.map(sp => (
+                        <div key={sp.id} onClick={() => setDetail(sp)} style={{
+                            background: C.card, borderRadius: 16, padding: "12px", border: `1px solid ${C.border}`,
+                            display: "flex", alignItems: "center", gap: 16, cursor: "pointer", transition: "transform 0.2s",
+                            boxShadow: `0 4px 12px rgba(0,0,0,0.1)`
+                        }}
+                            onMouseDown={e => e.currentTarget.style.transform = "scale(0.98)"}
+                            onMouseUp={e => e.currentTarget.style.transform = "scale(1)"}
+                        >
+                            <div style={{
+                                width: 70, height: 70, borderRadius: 12, overflow: 'hidden',
+                                background: `linear-gradient(135deg, ${C.water}20, ${C.surface})`, border: `1px solid ${C.border}`,
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                boxShadow: `inset 0 0 10px rgba(0,0,0,0.2)`
+                            }}>
+                                {sp.imagemUrl ? (
+                                    <img src={sp.imagemUrl} alt={sp.nomePopular} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                ) : (
+                                    <span style={{ fontSize: 24 }}>🐟</span>
+                                )}
                             </div>
+                            <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: 16, fontWeight: 800, fontFamily: 'Outfit, sans-serif' }}>{sp.nomePopular}</div>
+                                <div style={{ fontSize: 12, color: C.textDim, fontStyle: "italic", marginTop: 2 }}>{sp.nomeCientifico}</div>
+                                <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+                                    <span style={{
+                                        fontSize: 10, padding: "3px 8px", borderRadius: 6, fontWeight: 600,
+                                        background: sp.origem === "Nativa" ? `${C.green}15` : `${C.amber}15`,
+                                        color: sp.origem === "Nativa" ? C.green : C.amber,
+                                    }}>{sp.origem}</span>
+                                    <span style={{
+                                        fontSize: 10, padding: "3px 8px", borderRadius: 6, fontWeight: 600,
+                                        background: `${C.blue}15`, color: C.blue,
+                                    }}>{sp.tipo}</span>
+                                </div>
+                            </div>
+                            <Icon name="chevron" size={18} color={C.textDim} />
                         </div>
-                        <Icon name="chevron" size={18} color={C.textDim} />
-                    </div>
-                ))}
-                {filtered.length === 0 && (
-                    <div style={{ padding: 40, textAlign: 'center', color: C.textDim }}>
-                        Nenhuma espécie encontrada.
-                    </div>
-                )}
-            </div>
+                    ))}
+                    {filtered.length === 0 && (
+                        <div style={{ padding: 40, textAlign: 'center', color: C.textDim }}>
+                            Nenhuma espécie encontrada.
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 }

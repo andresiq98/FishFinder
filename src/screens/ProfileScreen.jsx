@@ -2,9 +2,16 @@ import { useState } from 'react';
 import { COLORS as C } from '../theme/colors';
 import Icon from '../components/Icon';
 import { CATCHES } from '../data/mockData';
+import { useAuth } from '../context/AuthContext';
 
 export default function ProfileScreen() {
+    const { user, logout } = useAuth();
     const [subTab, setSubTab] = useState("diario");
+
+    const getInitials = (name) => {
+        if (!name) return "P";
+        return name.substring(0, 2).toUpperCase();
+    };
 
     return (
         <div style={{ padding: "0 16px 100px 16px", animation: "fadeUp 0.4s ease-out" }}>
@@ -14,18 +21,31 @@ export default function ProfileScreen() {
                     <div style={{
                         width: 72, height: 72, borderRadius: 36, background: `linear-gradient(135deg, ${C.amber}, ${C.sunrise})`,
                         display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, fontWeight: 900, color: "#000",
-                        boxShadow: `0 4px 20px ${C.amber}50`
-                    }}>PR</div>
-                    <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 22, fontWeight: 900, fontFamily: 'Outfit, sans-serif' }}>Pedro Ribeiro</div>
-                        <div style={{ fontSize: 13, color: C.textDim, marginTop: 4 }}>Pescador Esportivo</div>
+                        boxShadow: `0 4px 20px ${C.amber}50`, overflow: 'hidden'
+                    }}>
+                        {user?.photoURL ? (
+                            <img src={user.photoURL} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                            getInitials(user?.displayName || user?.email)
+                        )}
+                    </div>
+                    <div style={{ flex: 1, overflow: 'hidden' }}>
+                        <div style={{ fontSize: 22, fontWeight: 900, fontFamily: 'Outfit, sans-serif', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {user?.displayName || "Pescador"}
+                        </div>
+                        <div style={{ fontSize: 13, color: C.textDim, marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {user?.email || "Sem email"}
+                        </div>
                         <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 6, opacity: 0.8 }}>
                             <Icon name="pin" size={12} color={C.textMid} />
-                            <span style={{ fontSize: 11, color: C.textMid }}>São Paulo, SP</span>
+                            <span style={{ fontSize: 11, color: C.textMid }}>Brasil</span>
                         </div>
                     </div>
-                    <div style={{ width: 40, height: 40, borderRadius: 20, background: C.cardHover, display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${C.border}` }}>
-                        <Icon name="search" size={16} color={C.textMid} />
+                    <div
+                        onClick={logout}
+                        style={{ width: 40, height: 40, borderRadius: 20, background: 'rgba(234, 67, 53, 0.1)', display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid rgba(234, 67, 53, 0.3)`, cursor: 'pointer' }}
+                    >
+                        <Icon name="close" size={16} color="#EA4335" />
                     </div>
                 </div>
             </div>
@@ -72,8 +92,8 @@ export default function ProfileScreen() {
 
             {subTab === "diario" ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                    {CATCHES.map(c => (
-                        <div key={c.id} style={{
+                    {CATCHES.map((c, i) => (
+                        <div key={c.id || i} style={{
                             background: C.card, borderRadius: 20, padding: 16, border: `1px solid ${C.border}`,
                             boxShadow: `0 4px 16px rgba(0,0,0,0.15)`
                         }}>
@@ -85,9 +105,8 @@ export default function ProfileScreen() {
                                     boxShadow: "inset 0 0 10px rgba(0,0,0,0.2)"
                                 }}>{c.img}</div>
                                 <div style={{ flex: 1 }}>
-                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                                    <div style={{ display: "flex", justifyContents: "space-between", alignItems: "flex-start" }}>
                                         <div style={{ fontSize: 16, fontWeight: 800, fontFamily: 'Outfit, sans-serif' }}>{c.species}</div>
-                                        <Icon name="chevron" size={16} color={C.textDim} />
                                     </div>
                                     <div style={{ fontSize: 13, color: C.textMid, marginTop: 4 }}>{c.weight}kg · {c.length}cm</div>
                                     <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 6 }}>
